@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hacker News Top Stories</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#151519] text-[#B8A679] font-sans">
+    <div class="container mx-auto py-10">
+        <h1 class="text-xl font-bold text-left mb-8">Hacker News Top Stories</h1>
+        <div class="bg-[#17171C] shadow-md rounded-lg p-2 h-[60vh] overflow-auto">
+            <div id="stories" class="space-y-1 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script>
+        function timeAgo(timestamp) {
+            const now = Math.floor(Date.now() / 1000);
+            const seconds = now - timestamp;
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (days > 0) return `${days}d ago`;
+            if (hours > 0) return `${hours}h ago`;
+            if (minutes > 0) return `${minutes}m ago`;
+            return `${seconds}s ago`;
+        }
+
+        async function fetchStories() {
+            try {
+                const response = await fetch('http://localhost:8080/hackernews');
+                const stories = await response.json();
+
+                renderStories(stories);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        function renderStories(stories) {
+            const container = document.getElementById('stories');
+            container.innerHTML = '';
+
+            stories.forEach(story => {
+                const storyCard = document.createElement('div');
+                storyCard.className = 'bg-[#17171C] shadow-sm rounded-lg p-4';
+                storyCard.innerHTML = `
+                    <h2 class="text-xl font-semibold text-[#B8A679]">
+                        <a href="${story.url}" target="_blank" ">
+                            ${story.title}
+                        </a>
+                    </h2>
+                    <p class="text-gray-500 text-sm">Score: ${story.score} | Comments: ${story.descendants}</p>
+                    <p class="text-gray-400 text-xs">Published: ${timeAgo(story.time)}</p>
+                `;
+                container.appendChild(storyCard);
+            });
+        }
+
+        fetchStories();
+    </script>
+</body>
+</html>
