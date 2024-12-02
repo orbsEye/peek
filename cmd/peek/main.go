@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"os/signal"
 	"peek/api/handlers/coincap"
@@ -9,7 +10,15 @@ import (
 
 func main() {
 
-	hackernews.HackerNewsInfo()
+	http.HandleFunc("/hackernews", hackernews.HackerNewsHandler)
+
+	http.Handle("/", http.FileServer(http.Dir("./static")))
+
+	port := ":8080"
+	println("Starting server on", port)
+	if err := http.ListenAndServe(port, nil); err != nil {
+		panic(err)
+	}
 
 	coincap.CoincapInfo()
 	assets := []string{"bitcoin", "ethereum", "litecoin", "monero"}
