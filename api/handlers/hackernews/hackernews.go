@@ -2,7 +2,9 @@ package hackernews
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"peek/api/httpclient"
 	"time"
 )
@@ -36,23 +38,25 @@ func (hn *HackerNewsClient) GetStory(ctx context.Context, id int) (map[string]in
 	return story, nil
 }
 
-func HackerNewsInfo() {
+func HackerNewsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	hn := NewHackerNewsClient()
 
 	topStoryIDs, err := hn.GetTopStories(ctx)
 	if err != nil {
-		fmt.Printf("Error fetching top stories: %v\n", err)
+		http.Error(w, fmt.Sprintf("Error fetching top stories: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Println("Top Stories:")
-	for i, id := range topStoryIDs[:10] {
+	stories := make([]map[string]interface{}, 0, 10)
+	for _, id := range topStoryIDs[:10] {
 		story, err := hn.GetStory(ctx, id)
 		if err != nil {
-			fmt.Printf("Error fetching story with ID %d: %v\n", id, err)
 			continue
 		}
-		fmt.Printf("%d. %s (%.0f points, by %s)\n", i+1, story["title"], story["score"], story["by"])
+		stories = append(stories, story)
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stories)
 }
