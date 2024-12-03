@@ -3,14 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hacker News Top Stories</title>
+    <title>Hacker News & CoinCap</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-[#151519] text-[#B8A679] font-sans">
     <div class="container mx-auto py-10">
-        <h1 class="text-xl font-bold text-left mb-8">Hacker News Top Stories</h1>
-        <div class="bg-[#17171C] shadow-md rounded-lg p-2 h-[60vh] overflow-auto">
-            <div id="stories" class="space-y-1 overflow-y-auto"></div>
+        <div class="grid grid-cols-1 md:grid-cols-1 gap-10">
+            <div>
+                <h1 class="text-xl font-bold text-left mb-8">Hacker News Top Stories</h1>
+                <div class="bg-[#17171C] shadow-md rounded-lg p-2 h-[60vh] overflow-auto">
+                    <div id="stories" class="space-y-1 overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <div>
+                <h1 class="text-xl font-bold text-left mb-8">Live Cryptocurrency Prices</h1>
+                <div class="bg-[#17171C] shadow-md rounded-lg p-2 h-[60vh] overflow-auto">
+                    <div id="crypto-prices" class="space-y-1 overflow-y-auto"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -22,10 +33,10 @@
             const hours = Math.floor(minutes / 60);
             const days = Math.floor(hours / 24);
 
-            if (days > 0) return `${days}d ago`;
-            if (hours > 0) return `${hours}h ago`;
-            if (minutes > 0) return `${minutes}m ago`;
-            return `${seconds}s ago`;
+            if (days > 0) return `${days}d`;
+            if (hours > 0) return `${hours}h`;
+            if (minutes > 0) return `${minutes}m`;
+            return `${seconds}s`;
         }
 
         async function fetchStories() {
@@ -35,7 +46,7 @@
 
                 renderStories(stories);
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error fetching Hacker News:', error);
             }
         }
 
@@ -44,22 +55,55 @@
             container.innerHTML = '';
 
             stories.forEach(story => {
+                const url =  new URL(story.url).hostname.replace('www.', '');
                 const storyCard = document.createElement('div');
                 storyCard.className = 'bg-[#17171C] shadow-sm rounded-lg p-4';
                 storyCard.innerHTML = `
                     <h2 class="text-xl font-semibold text-[#B8A679]">
-                        <a href="${story.url}" target="_blank" ">
                             ${story.title}
-                        </a>
                     </h2>
-                    <p class="text-gray-500 text-sm">Score: ${story.score} | Comments: ${story.descendants}</p>
-                    <p class="text-gray-400 text-xs">Published: ${timeAgo(story.time)}</p>
+                    <div class="flex">
+                        <p class="text-gray-500 text-sm pr-2">${timeAgo(story.time)} • ${story.score} points • ${story.descendants} comments • </p>
+                        <a href="${story.url}" target="_blank">
+                            ${url}
+                        </a>
+                    </div>
                 `;
                 container.appendChild(storyCard);
             });
         }
 
+        function connectCoinCap() {
+            const ws = new WebSocket('ws://localhost:8080/coincap');
+            const container = document.getElementById('crypto-prices');
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                container.innerHTML = '';
+
+                data.forEach(asset => {
+                    const assetCard = document.createElement('div');
+                    assetCard.className = 'bg-[#17171C] shadow-sm rounded-lg p-4';
+                    assetCard.innerHTML = `
+                        <h2 class="text-xl font-semibold text-[#B8A679]">${asset.symbol.toUpperCase()}</h2>
+                        <p class="text-gray-500 text-sm">Price (USD): $${asset.price_usd}</p>
+                    `;
+                    container.appendChild(assetCard);
+                });
+            };
+
+            ws.onclose = () => {
+                console.log('CoinCap WebSocket closed. Reconnecting...');
+                setTimeout(connectCoinCap, 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('CoinCap WebSocket error:', error);
+            };
+        }
+
         fetchStories();
+        connectCoinCap();
     </script>
 </body>
 </html>
